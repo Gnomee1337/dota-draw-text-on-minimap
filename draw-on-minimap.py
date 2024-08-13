@@ -1,5 +1,7 @@
 import pyautogui
 import tkinter as tk
+from tkinter import ttk
+from ttkthemes import ThemedTk
 import json
 import pygetwindow as gw
 import time
@@ -12,7 +14,6 @@ DRAWING_AREA = (15, 832, 269, 1056)  # (x1, y1, x2, y2)
 def load_vectors(filename):
     with open(filename, 'r') as file:
         return json.load(file)
-
 
 # Function to calculate maximum scale that fits text in the drawing area
 def calculate_max_scale(text, vector_data, area_width, area_height, max_lines):
@@ -32,12 +33,10 @@ def calculate_max_scale(text, vector_data, area_width, area_height, max_lines):
     scale = min(scale_width, scale_height)
     return scale, lines_needed, char_width, char_height
 
-
 # Function to fit text into the drawing area and calculate the scaling
 def fit_text_to_area(text, vector_data, area_width, area_height):
     max_lines = (area_height // (40 * 2))  # Max lines that fit in the height of the area
-    scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height,
-                                                                       max_lines)
+    scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height, max_lines)
 
     # Calculate the number of characters per line
     chars_per_line = int(area_width / (char_width * scale + 10))
@@ -49,7 +48,6 @@ def fit_text_to_area(text, vector_data, area_width, area_height):
         lines = lines[:max_lines]
 
     return scale, lines, char_width, char_height
-
 
 # Function to draw a character based on vector instructions
 def draw_vector_char(char, start_x, start_y, scale=1):
@@ -73,7 +71,6 @@ def draw_vector_char(char, start_x, start_y, scale=1):
             pyautogui.moveTo(x_start, y_start)
             pyautogui.dragTo(x_end, y_end, duration=0)
 
-
 # Function to maximize a specific window
 def maximize_window(window_title):
     try:
@@ -83,7 +80,6 @@ def maximize_window(window_title):
         time.sleep(1)  # Small delay to ensure the window is maximized
     except IndexError:
         status_label.config(text=f"Window with title '{window_title}' not found!")
-
 
 # Function to move cursor to drawing area and start drawing
 def draw_text():
@@ -128,26 +124,26 @@ def draw_text():
 
     status_label.config(text="Drawing complete!")
 
-
 # Load the character vectors
 vectors = load_vectors("char_vectors.json")
 
-# Set up the tkinter window
-window = tk.Tk()
-window.title("Paint Text Drawer")
+# Set up the themed tkinter window
+window = ThemedTk(theme="arc")
+window.title("Modern Paint Text Drawer")
+window.geometry("400x200")
 
 # Text entry
-tk.Label(window, text="Enter Text:").pack(pady=5)
-text_entry = tk.Entry(window, width=30)
-text_entry.pack()
+ttk.Label(window, text="Enter Text:").pack(pady=5)
+text_entry = ttk.Entry(window, width=30)
+text_entry.pack(pady=10)
 
 # Draw button
-draw_button = tk.Button(window, text="Draw in Paint", command=draw_text)
+draw_button = ttk.Button(window, text="Draw in Paint", command=draw_text)
 draw_button.pack(pady=10)
 
 # Status label
-status_label = tk.Label(window, text="")
-status_label.pack()
+status_label = ttk.Label(window, text="")
+status_label.pack(pady=10)
 
 # Run the tkinter loop
 window.mainloop()
