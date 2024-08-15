@@ -16,16 +16,29 @@ def load_vectors(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return json.load(file)
 
+
 # Function to calculate maximum scale that fits text in the drawing area
 def calculate_max_scale(text, vector_data, area_width, area_height, max_lines):
-    char_width = max(
-        max(abs(x_end - x_start) for x_start, y_start, x_end, y_end in vector_data[char])
-        for char in text if char in vector_data
-    ) if text else 0
-    char_height = max(
-        max(abs(y_end - y_start) for x_start, y_start, x_end, y_end in vector_data[char])
-        for char in text if char in vector_data
-    ) if text else 0
+    # Filter out characters not in vector_data
+    valid_chars = [char for char in text if char in vector_data]
+
+    if not valid_chars:
+        return 1, 1, 0, 0  # No valid characters, return default values
+
+    def get_max_dimension(dim_index):
+        # Collect dimensions for the specified index
+        dimensions = []
+        for char in valid_chars:
+            vectors = vector_data.get(char, [])
+            for x_start, y_start, x_end, y_end in vectors:
+                if dim_index == 0:  # Width
+                    dimensions.append(abs(x_end - x_start))
+                elif dim_index == 1:  # Height
+                    dimensions.append(abs(y_end - y_start))
+        return max(dimensions, default=0)
+
+    char_width = get_max_dimension(0)
+    char_height = get_max_dimension(1)
 
     lines_needed = -(-len(text) // (area_width // (char_width + 10)))  # Round up
     scale_height = area_height / (lines_needed * char_height + 10 * lines_needed)
@@ -34,10 +47,12 @@ def calculate_max_scale(text, vector_data, area_width, area_height, max_lines):
     scale = min(scale_width, scale_height)
     return scale, lines_needed, char_width, char_height
 
+
 # Function to fit text into the drawing area and calculate the scaling
 def fit_text_to_area(text, vector_data, area_width, area_height):
     max_lines = (area_height // (40 * 2))  # Max lines that fit in the height of the area
-    scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height, max_lines)
+    scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height,
+                                                                       max_lines)
 
     # Calculate the number of characters per line
     chars_per_line = int(area_width / (char_width * scale + 10))
@@ -49,6 +64,7 @@ def fit_text_to_area(text, vector_data, area_width, area_height):
         lines = lines[:max_lines]
 
     return scale, lines, char_width, char_height
+
 
 # Function to draw a character based on vector instructions
 def draw_vector_char(char, start_x, start_y, scale=1):
@@ -72,6 +88,7 @@ def draw_vector_char(char, start_x, start_y, scale=1):
             pyautogui.moveTo(x_start, y_start)
             pyautogui.dragTo(x_end, y_end, duration=0)
 
+
 # Function to maximize a specific window
 def maximize_window(window_title):
     try:
@@ -81,6 +98,7 @@ def maximize_window(window_title):
         time.sleep(1)  # Small delay to ensure the window is maximized
     except IndexError:
         status_label.config(text=f"Window with title '{window_title}' not found!")
+
 
 # Function to move cursor to drawing area and start drawing
 def draw_text():
@@ -133,6 +151,7 @@ def draw_text():
     pyautogui.mouseUp()
 
     status_label.config(text="Drawing complete!")
+
 
 # Load the character vectors
 vectors = load_vectors("char_vectors.json")
