@@ -10,9 +10,10 @@ import keyboard
 # Hardcoded coordinates for the drawing area
 DRAWING_AREA = (15, 832, 269, 1056)  # (x1, y1, x2, y2)
 
+
 # Function to load character vectors from JSON file
 def load_vectors(filename):
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='utf-8') as file:
         return json.load(file)
 
 # Function to calculate maximum scale that fits text in the drawing area
