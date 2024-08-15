@@ -89,6 +89,15 @@ def draw_text():
     # Fit text to the drawing area and calculate scale
     area_width = DRAWING_AREA[2] - DRAWING_AREA[0]
     area_height = DRAWING_AREA[3] - DRAWING_AREA[1]
+
+    # Filter the text to include only characters present in vector_data
+    filtered_text = ''.join(char for char in text_to_draw if char in vectors)
+
+    # If no valid characters, show an error message
+    if not filtered_text:
+        status_label.config(text="No valid characters to draw.")
+        return
+
     scale, lines, char_width, char_height = fit_text_to_area(text_to_draw, vectors, area_width, area_height)
 
     # Maximize the Paint window
