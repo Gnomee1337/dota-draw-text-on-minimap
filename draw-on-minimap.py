@@ -1,4 +1,5 @@
-import pyautogui
+import win32api
+import win32con
 import tkinter as tk
 from tkinter import ttk
 from ttkthemes import ThemedTk
@@ -72,21 +73,27 @@ def draw_vector_char(char, start_x, start_y, scale=1):
         vector_set = vectors[char]
         for x_start, y_start, x_end, y_end in vector_set:
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
-                pyautogui.keyUp('ctrl')  # Release 'Ctrl' key
-                pyautogui.mouseUp()  # Release mouse button
+                # Release 'Ctrl' key
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                # Release mouse button
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
+
             # Scale coordinates and ensure drawing happens within the selected area
             x_start = start_x + x_start * scale
             y_start = start_y + y_start * scale
             x_end = start_x + x_end * scale
             y_end = start_y + y_end * scale
-            x_start, y_start = max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]), \
-                max(min(y_start, DRAWING_AREA[3]), DRAWING_AREA[1])
-            x_end, y_end = max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]), \
-                max(min(y_end, DRAWING_AREA[3]), DRAWING_AREA[1])
-            pyautogui.moveTo(x_start, y_start)
-            pyautogui.dragTo(x_end, y_end, duration=0)
+            x_start, y_start = max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_start, DRAWING_AREA[3]),
+                                                                                        DRAWING_AREA[1])
+            x_end, y_end = max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_end, DRAWING_AREA[3]),
+                                                                                  DRAWING_AREA[1])
+
+            win32api.SetCursorPos((int(x_start), int(y_start)))
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+            win32api.SetCursorPos((int(x_end), int(y_end)))
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
 
 # Function to maximize a specific window
@@ -122,12 +129,13 @@ def draw_text():
     maximize_window("Untitled - Paint")
 
     # Move cursor to the starting position without holding 'Ctrl' and left click
-    pyautogui.moveTo(DRAWING_AREA[0], DRAWING_AREA[1])
+    win32api.SetCursorPos((DRAWING_AREA[0], DRAWING_AREA[1]))
     time.sleep(1)  # Wait for 1 second
 
-    # Hold 'Ctrl' key and perform left click
-    pyautogui.keyDown('ctrl')
-    pyautogui.mouseDown()
+    # Hold 'Ctrl' key
+    win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+    # Perform left click
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
 
     # Set the starting position for the text drawing
     start_x, start_y = DRAWING_AREA[0], DRAWING_AREA[1]
@@ -137,8 +145,10 @@ def draw_text():
         current_x = start_x
         for char in line:
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
-                pyautogui.keyUp('ctrl')  # Release 'Ctrl' key
-                pyautogui.mouseUp()  # Release mouse button
+                # Release 'Ctrl' key
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                # Release mouse button
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
             if char in vectors:
@@ -147,8 +157,8 @@ def draw_text():
         start_y += int((char_height * scale) + 10)  # Move down to the next line
 
     # Release 'Ctrl' key and mouse button
-    pyautogui.keyUp('ctrl')
-    pyautogui.mouseUp()
+    win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
     status_label.config(text="Drawing complete!")
 
