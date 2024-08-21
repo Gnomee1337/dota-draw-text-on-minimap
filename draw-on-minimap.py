@@ -80,18 +80,30 @@ def draw_vector_char(char, start_x, start_y, scale=1):
                 status_label.config(text="Drawing canceled!")
                 return
 
-            # Scale coordinates and ensure drawing happens within the selected area
+            # Scale coords and set the starting and ending points
             x_start = start_x + x_start * scale
             y_start = start_y + y_start * scale
             x_end = start_x + x_end * scale
             y_end = start_y + y_end * scale
-            x_start, y_start = max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_start, DRAWING_AREA[3]),
-                                                                                        DRAWING_AREA[1])
-            x_end, y_end = max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_end, DRAWING_AREA[3]),
-                                                                                  DRAWING_AREA[1])
+
+            x_start, y_start = max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_start, DRAWING_AREA[3]), DRAWING_AREA[1])
+            x_end, y_end = max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_end, DRAWING_AREA[3]), DRAWING_AREA[1])
+
+            # Calculate the distance to move in small steps
+            steps = 50  # Number of steps for smoother movement
+            dx = (x_end - x_start) / steps
+            dy = (y_end - y_start) / steps
 
             win32api.SetCursorPos((int(x_start), int(y_start)))
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+
+            for i in range(steps):
+                x_current = x_start + dx * i
+                y_current = y_start + dy * i
+                win32api.SetCursorPos((int(x_current), int(y_current)))
+                time.sleep(0.005)  # Small delay for each step
+
+            # Release 'Ctrl' key and mouse button
             win32api.SetCursorPos((int(x_end), int(y_end)))
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
@@ -126,7 +138,7 @@ def draw_text():
     scale, lines, char_width, char_height = fit_text_to_area(text_to_draw, vectors, area_width, area_height)
 
     # Maximize the Paint window
-    maximize_window("Untitled - Paint")
+    maximize_window("Dota")
 
     # Move cursor to the starting position without holding 'Ctrl' and left click
     win32api.SetCursorPos((DRAWING_AREA[0], DRAWING_AREA[1]))
