@@ -51,20 +51,19 @@ def calculate_max_scale(text, vector_data, area_width, area_height, max_lines):
 
 # Function to fit text into the drawing area and calculate the scaling
 def fit_text_to_area(text, vector_data, area_width, area_height):
-    max_lines = (area_height // (40 * 2))  # Max lines that fit in the height of the area
+    # Determine maximum scale based on the area size and the text
     scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height,
-                                                                       max_lines)
-
+                                                                       max_lines=None)
     # Calculate the number of characters per line
-    chars_per_line = int(area_width / (char_width * scale + 10))
+    chars_per_line = int(area_width / (char_width * scale + 5))
 
+    # Split the text into lines based on the number of characters per line
     lines = [text[i:i + chars_per_line] for i in range(0, len(text), chars_per_line)]
 
-    # Check if the text fits within the height of the area
-    if len(lines) > max_lines:
-        lines = lines[:max_lines]
+    # Calculate the height per line dynamically based on the number of lines
+    line_height = area_height // len(lines) if len(lines) > 0 else area_height
 
-    return scale, lines, char_width, char_height
+    return scale, lines, char_width, line_height
 
 
 # Function to draw a character based on vector instructions
@@ -73,21 +72,25 @@ def draw_vector_char(char, start_x, start_y, scale=1):
         vector_set = vectors[char]
         for x_start, y_start, x_end, y_end in vector_set:
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
-                # Release 'Ctrl' key
+                # Release 'Ctrl' key and mouse button
                 win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-                # Release mouse button
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
-
             # Scale coords and set the starting and ending points
             x_start = start_x + x_start * scale
             y_start = start_y + y_start * scale
             x_end = start_x + x_end * scale
             y_end = start_y + y_end * scale
 
-            x_start, y_start = max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_start, DRAWING_AREA[3]), DRAWING_AREA[1])
-            x_end, y_end = max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]), max(min(y_end, DRAWING_AREA[3]), DRAWING_AREA[1])
+            x_start, y_start = (
+                max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]),
+                max(min(y_start, DRAWING_AREA[3]), DRAWING_AREA[1])
+            )
+            x_end, y_end = (
+                max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]),
+                max(min(y_end, DRAWING_AREA[3]), DRAWING_AREA[1])
+            )
 
             # Calculate the distance to move in small steps
             steps = 50  # Number of steps for smoother movement
@@ -95,6 +98,7 @@ def draw_vector_char(char, start_x, start_y, scale=1):
             dy = (y_end - y_start) / steps
 
             win32api.SetCursorPos((int(x_start), int(y_start)))
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
 
             for i in range(steps):
@@ -103,8 +107,9 @@ def draw_vector_char(char, start_x, start_y, scale=1):
                 win32api.SetCursorPos((int(x_current), int(y_current)))
                 time.sleep(0.005)  # Small delay for each step
 
-            # Release 'Ctrl' key and mouse button
             win32api.SetCursorPos((int(x_end), int(y_end)))
+            # Release 'Ctrl' key and mouse button
+            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
 
@@ -135,7 +140,10 @@ def draw_text():
         status_label.config(text="No valid characters to draw.")
         return
 
-    scale, lines, char_width, char_height = fit_text_to_area(text_to_draw, vectors, area_width, area_height)
+    scale, lines, char_width, line_height = fit_text_to_area(text_to_draw, vectors, area_width, area_height)
+
+    # Adjust the spacing dynamically based on the size of characters
+    spacing_ratio = 0.2
 
     # Maximize the Paint window
     maximize_window("Dota")
@@ -143,11 +151,6 @@ def draw_text():
     # Move cursor to the starting position without holding 'Ctrl' and left click
     win32api.SetCursorPos((DRAWING_AREA[0], DRAWING_AREA[1]))
     time.sleep(1)  # Wait for 1 second
-
-    # Hold 'Ctrl' key
-    win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-    # Perform left click
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
 
     # Set the starting position for the text drawing
     start_x, start_y = DRAWING_AREA[0], DRAWING_AREA[1]
@@ -157,21 +160,16 @@ def draw_text():
         current_x = start_x
         for char in line:
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
-                # Release 'Ctrl' key
+                # Release 'Ctrl' key and mouse button
                 win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-                # Release mouse button
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
             if char in vectors:
                 draw_vector_char(char, current_x, start_y, scale=scale)
-                current_x += int((char_width * scale) + 10)  # Adjust spacing between characters
-        start_y += int((char_height * scale) + 10)  # Move down to the next line
-
-    # Release 'Ctrl' key and mouse button
-    win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
-
+                # Adjust spacing between characters
+                current_x += int((char_width * scale) + (char_width * spacing_ratio * scale))
+        start_y += line_height  # Move down to the next line
     status_label.config(text="Drawing complete!")
 
 
