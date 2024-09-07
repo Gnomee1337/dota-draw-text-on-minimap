@@ -165,7 +165,14 @@ def draw_text():
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
-            if char in vectors:
+            # Check if the character is in the vectors and has valid segments
+            if char in vectors and vectors[char]:
+                # Move the cursor to the starting position of the character WITHOUT holding keys
+                first_segment = vectors[char][0]
+                x_start = current_x + first_segment[0] * scale
+                y_start = start_y + first_segment[1] * scale
+                win32api.SetCursorPos((int(x_start), int(y_start)))
+                time.sleep(0.05)  # Optional: add a small delay to ensure the game processes the movement
                 draw_vector_char(char, current_x, start_y, scale=scale)
                 # Adjust spacing between characters
                 current_x += int((char_width * scale) + (char_width * spacing_ratio * scale))
