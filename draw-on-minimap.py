@@ -54,11 +54,27 @@ def fit_text_to_area(text, vector_data, area_width, area_height):
     # Determine maximum scale based on the area size and the text
     scale, lines_needed, char_width, char_height = calculate_max_scale(text, vector_data, area_width, area_height,
                                                                        max_lines=None)
+
     # Calculate the number of characters per line
     chars_per_line = int(area_width / (char_width * scale + 5))
 
     # Split the text into lines based on the number of characters per line
-    lines = [text[i:i + chars_per_line] for i in range(0, len(text), chars_per_line)]
+    lines = []
+    current_line = ''
+
+    for word in text.split(' '):  # Splitting the text by spaces to preserve words
+        # If adding the word exceeds the chars_per_line limit, start a new line
+        if len(current_line) + len(word) > chars_per_line:
+            lines.append(current_line.strip())  # Add current line without leading/trailing spaces
+            current_line = word  # Start the new line with the current word
+        else:
+            if current_line:  # Only add space if it's not the first word on the line
+                current_line += ' '
+            current_line += word
+
+    # Add the last line if there's remaining text
+    if current_line:
+        lines.append(current_line.strip())  # Trim any leading/trailing spaces for the last line
 
     # Calculate the height per line dynamically based on the number of lines
     line_height = area_height // len(lines) if len(lines) > 0 else area_height
