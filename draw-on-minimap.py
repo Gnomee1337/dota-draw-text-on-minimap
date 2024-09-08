@@ -76,11 +76,16 @@ def draw_vector_char(char, start_x, start_y, scale=1):
         y_start = start_y + first_segment[1] * scale
         win32api.SetCursorPos((int(x_start), int(y_start)))
         time.sleep(0.05)  # Small delay to ensure the game processes the movement
-        # Press CTRL and LEFT MOUSE BUTTON only when starting to draw the character
+
+        # # Press CTRL and LEFT MOUSE BUTTON only when starting to draw the character
         win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+
+        # For each segment of the character, draw smoothly
+        previous_x_end, previous_y_end = None, None  # Track previous end coordinates
+
         # Draw each segment of the character
-        for segment in vectors[char]:
+        for segment_index, segment in enumerate(vectors[char]):
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
                 # Release 'Ctrl' key and mouse button
                 win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
@@ -103,24 +108,32 @@ def draw_vector_char(char, start_x, start_y, scale=1):
             x_end_segment = max(min(x_end_segment, DRAWING_AREA[2]), DRAWING_AREA[0])
             y_end_segment = max(min(y_end_segment, DRAWING_AREA[3]), DRAWING_AREA[1])
 
+            # Adjust start point to be the same as the previous end point if they are very close
+            if previous_x_end is not None and previous_y_end is not None:
+                if abs(previous_x_end - x_start_segment) < 2 and abs(previous_y_end - y_start_segment) < 2:
+                    x_start_segment = previous_x_end
+                    y_start_segment = previous_y_end
+
             # Move to the starting point of the segment WITHOUT holding mouse button
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)  # Ensure mouse is released
             win32api.SetCursorPos((int(x_start_segment), int(y_start_segment)))
-            time.sleep(0.005)  # Small delay to ensure proper movement
+            time.sleep(0.01)  # Small delay to ensure proper movement
 
             # Ensure mouse button is fully released before proceeding
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
             time.sleep(0.01)  # A short delay to ensure no accidental line drawing
 
-            # Press LEFT MOUSE BUTTON to start drawing the segment
-            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+            # Press CTRL and LEFT MOUSE BUTTON to start drawing the segment
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)  # Press CTRL
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)  # Press LEFT MOUSE BUTTON
 
             # # win32api.SetCursorPos((int(x_start), int(y_start)))
             # win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
 
             # Interpolate movement between the start and end points for smooth drawing
-            steps = 50  # Number of steps for smoother movement
+            steps = max(50, int(abs(x_end_segment - x_start_segment) + abs(
+                y_end_segment - y_start_segment)))  # Adjust step count based on distance
             dx = (x_end_segment - x_start_segment) / steps
             dy = (y_end_segment - y_start_segment) / steps
 
@@ -128,12 +141,16 @@ def draw_vector_char(char, start_x, start_y, scale=1):
                 x_current = x_start_segment + dx * i
                 y_current = y_start_segment + dy * i
                 win32api.SetCursorPos((int(x_current), int(y_current)))
-                time.sleep(0.005)  # Small delay for each step
+                time.sleep(0.003)  # Small delay for each step
+
+            # Track the end coordinates for the next segment
+            previous_x_end, previous_y_end = x_end_segment, y_end_segment
 
             # win32api.SetCursorPos((int(x_end), int(y_end)))
             # Release 'Ctrl' key and mouse button
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
-            time.sleep(0.01)  # Ensure no line drawing between segments
+            time.sleep(0.005)  # Ensure no line drawing between segments
+        # Release CTRL after the entire character is fully drawn
         win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
 
 
