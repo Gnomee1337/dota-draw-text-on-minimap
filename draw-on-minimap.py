@@ -68,49 +68,73 @@ def fit_text_to_area(text, vector_data, area_width, area_height):
 
 # Function to draw a character based on vector instructions
 def draw_vector_char(char, start_x, start_y, scale=1):
-    if char in vectors:
-        vector_set = vectors[char]
-        for x_start, y_start, x_end, y_end in vector_set:
+    # Check if the character is in vectors and has valid segments
+    if char in vectors and vectors[char]:
+        # vector_set = vectors[char]
+        first_segment = vectors[char][0]
+        x_start = start_x + first_segment[0] * scale
+        y_start = start_y + first_segment[1] * scale
+        win32api.SetCursorPos((int(x_start), int(y_start)))
+        time.sleep(0.05)  # Small delay to ensure the game processes the movement
+        # Press CTRL and LEFT MOUSE BUTTON only when starting to draw the character
+        win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+        # Draw each segment of the character
+        for segment in vectors[char]:
             if keyboard.is_pressed('esc'):  # Check for 'ESC' key press
                 # Release 'Ctrl' key and mouse button
                 win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
+
+            # Get the start and end points of the segment
+            x_start_segment, y_start_segment, x_end_segment, y_end_segment = segment
+
             # Scale coords and set the starting and ending points
-            x_start = start_x + x_start * scale
-            y_start = start_y + y_start * scale
-            x_end = start_x + x_end * scale
-            y_end = start_y + y_end * scale
+            x_start_segment = start_x + x_start_segment * scale
+            y_start_segment = start_y + y_start_segment * scale
+            x_end_segment = start_x + x_end_segment * scale
+            y_end_segment = start_y + y_end_segment * scale
 
-            x_start, y_start = (
-                max(min(x_start, DRAWING_AREA[2]), DRAWING_AREA[0]),
-                max(min(y_start, DRAWING_AREA[3]), DRAWING_AREA[1])
-            )
-            x_end, y_end = (
-                max(min(x_end, DRAWING_AREA[2]), DRAWING_AREA[0]),
-                max(min(y_end, DRAWING_AREA[3]), DRAWING_AREA[1])
-            )
+            # Ensure drawing happens within the selected area
+            x_start_segment = max(min(x_start_segment, DRAWING_AREA[2]), DRAWING_AREA[0])
+            y_start_segment = max(min(y_start_segment, DRAWING_AREA[3]), DRAWING_AREA[1])
+            x_end_segment = max(min(x_end_segment, DRAWING_AREA[2]), DRAWING_AREA[0])
+            y_end_segment = max(min(y_end_segment, DRAWING_AREA[3]), DRAWING_AREA[1])
 
-            # Calculate the distance to move in small steps
-            steps = 50  # Number of steps for smoother movement
-            dx = (x_end - x_start) / steps
-            dy = (y_end - y_start) / steps
+            # Move to the starting point of the segment WITHOUT holding mouse button
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)  # Ensure mouse is released
+            win32api.SetCursorPos((int(x_start_segment), int(y_start_segment)))
+            time.sleep(0.005)  # Small delay to ensure proper movement
 
-            win32api.SetCursorPos((int(x_start), int(y_start)))
-            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            # Ensure mouse button is fully released before proceeding
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+            time.sleep(0.01)  # A short delay to ensure no accidental line drawing
+
+            # Press LEFT MOUSE BUTTON to start drawing the segment
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
 
+            # # win32api.SetCursorPos((int(x_start), int(y_start)))
+            # win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+
+            # Interpolate movement between the start and end points for smooth drawing
+            steps = 50  # Number of steps for smoother movement
+            dx = (x_end_segment - x_start_segment) / steps
+            dy = (y_end_segment - y_start_segment) / steps
+
             for i in range(steps):
-                x_current = x_start + dx * i
-                y_current = y_start + dy * i
+                x_current = x_start_segment + dx * i
+                y_current = y_start_segment + dy * i
                 win32api.SetCursorPos((int(x_current), int(y_current)))
                 time.sleep(0.005)  # Small delay for each step
 
-            win32api.SetCursorPos((int(x_end), int(y_end)))
+            # win32api.SetCursorPos((int(x_end), int(y_end)))
             # Release 'Ctrl' key and mouse button
-            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+            time.sleep(0.01)  # Ensure no line drawing between segments
+        win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
 
 
 # Function to maximize a specific window
@@ -165,17 +189,17 @@ def draw_text():
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
-            # Check if the character is in the vectors and has valid segments
-            if char in vectors and vectors[char]:
-                # Move the cursor to the starting position of the character WITHOUT holding keys
-                first_segment = vectors[char][0]
-                x_start = current_x + first_segment[0] * scale
-                y_start = start_y + first_segment[1] * scale
-                win32api.SetCursorPos((int(x_start), int(y_start)))
-                time.sleep(0.05)  # Optional: add a small delay to ensure the game processes the movement
-                draw_vector_char(char, current_x, start_y, scale=scale)
-                # Adjust spacing between characters
-                current_x += int((char_width * scale) + (char_width * spacing_ratio * scale))
+                # Check if the character is in the vectors and has valid segments
+                # if char in vectors and vectors[char]:
+                #     # Move the cursor to the starting position of the character WITHOUT holding keys
+                #     first_segment = vectors[char][0]
+                #     x_start = current_x + first_segment[0] * scale
+                #     y_start = start_y + first_segment[1] * scale
+                #     win32api.SetCursorPos((int(x_start), int(y_start)))
+                #     time.sleep(0.05)  # Optional: add a small delay to ensure the game processes the movement
+            draw_vector_char(char, current_x, start_y, scale=scale)
+            # Adjust spacing between characters
+            current_x += int((char_width * scale) + (char_width * spacing_ratio * scale))
         start_y += line_height  # Move down to the next line
     status_label.config(text="Drawing complete!")
 
@@ -185,7 +209,7 @@ vectors = load_vectors("char_vectors.json")
 
 # Set up the themed tkinter window
 window = ThemedTk(theme="arc")
-window.title("Modern Paint Text Drawer")
+window.title("Text to Minimap Painter")
 window.geometry("400x200")
 
 # Text entry
@@ -194,7 +218,7 @@ text_entry = ttk.Entry(window, width=30)
 text_entry.pack(pady=10)
 
 # Draw button
-draw_button = ttk.Button(window, text="Draw in Paint", command=draw_text)
+draw_button = ttk.Button(window, text="Draw", command=draw_text)
 draw_button.pack(pady=10)
 
 # Status label
