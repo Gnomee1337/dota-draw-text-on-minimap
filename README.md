@@ -13,3 +13,10 @@ $ pip install -r requirements.txt
 ```
 $ python draw-on-minimap.py
 ```
+
+# References
+1. Dota MiniMap Painter (MMP)
+- https://www.youtube.com/watch?v=fJuqIXZrC7o
+- https://steamcommunity.com/sharedfiles/filedetails/?id=780487125
+
+2. https://github.com/freely322/dota2-text-to-minimap
