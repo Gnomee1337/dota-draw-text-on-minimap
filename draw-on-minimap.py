@@ -143,26 +143,35 @@ def draw_vector_char(char, start_x, start_y, scale=1):
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)  # Press CTRL
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)  # Press LEFT MOUSE BUTTON
 
-            # # win32api.SetCursorPos((int(x_start), int(y_start)))
-            # win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+            # Calculate the distance between the start and end points of the segment
+            segment_distance = ((x_end_segment - x_start_segment) ** 2 + (y_end_segment - y_start_segment) ** 2) ** 0.5
 
-            # Interpolate movement between the start and end points for smooth drawing
-            steps = max(50, int(abs(x_end_segment - x_start_segment) + abs(
-                y_end_segment - y_start_segment)))  # Adjust step count based on distance
-            dx = (x_end_segment - x_start_segment) / steps
-            dy = (y_end_segment - y_start_segment) / steps
+            if segment_distance < 15:
+                # Small segments: keep high precision
+                steps = max(60, int(segment_distance * 2))
+                dx = (x_end_segment - x_start_segment) / steps
+                dy = (y_end_segment - y_start_segment) / steps
+                delay = 0.005  # Slightly higher delay for small details
+            else:
+                # Longer segments: reduce steps but smooth out the movement
+                steps = max(30, int(segment_distance / 1.5))
+                dx = (x_end_segment - x_start_segment) / steps
+                dy = (y_end_segment - y_start_segment) / steps
+                delay = 0.0055  # Faster for longer strokes
 
             for i in range(steps):
                 x_current = x_start_segment + dx * i
                 y_current = y_start_segment + dy * i
                 win32api.SetCursorPos((int(x_current), int(y_current)))
-                time.sleep(0.003)  # Small delay for each step
+                # time.sleep(0.004)  # Small delay for each step
+                time.sleep(delay)
 
             # Track the end coordinates for the next segment
             previous_x_end, previous_y_end = x_end_segment, y_end_segment
 
-            # win32api.SetCursorPos((int(x_end), int(y_end)))
+            # Force cursor to the exact endpoint to avoid gaps
+            win32api.SetCursorPos((int(x_end_segment), int(y_end_segment)))
+
             # Release 'Ctrl' key and mouse button
             win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
             time.sleep(0.005)  # Ensure no line drawing between segments
@@ -222,14 +231,6 @@ def draw_text():
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 status_label.config(text="Drawing canceled!")
                 return
-                # Check if the character is in the vectors and has valid segments
-                # if char in vectors and vectors[char]:
-                #     # Move the cursor to the starting position of the character WITHOUT holding keys
-                #     first_segment = vectors[char][0]
-                #     x_start = current_x + first_segment[0] * scale
-                #     y_start = start_y + first_segment[1] * scale
-                #     win32api.SetCursorPos((int(x_start), int(y_start)))
-                #     time.sleep(0.05)  # Optional: add a small delay to ensure the game processes the movement
             draw_vector_char(char, current_x, start_y, scale=scale)
             # Adjust spacing between characters
             current_x += int((char_width * scale) + (char_width * spacing_ratio * scale))
